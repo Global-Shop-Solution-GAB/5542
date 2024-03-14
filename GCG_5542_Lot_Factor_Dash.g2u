@@ -1,0 +1,606 @@
+Program.Sub.ScreenSU.Start
+Gui.F_Lot_Factor..Create
+Gui.F_Lot_Factor..Size(19425,11040)
+Gui.F_Lot_Factor..MinX(0)
+Gui.F_Lot_Factor..MinY(0)
+Gui.F_Lot_Factor..Position(0,0)
+Gui.F_Lot_Factor..BackColor(-2147483633)
+Gui.F_Lot_Factor..MousePointer(0)
+Gui.F_Lot_Factor..Event(UnLoad,F_Lot_Factor_UnLoad)
+Gui.F_Lot_Factor..Caption("Lot Factor Dashboard")
+Gui.F_Lot_Factor.cmdRefresh.Create(Button)
+Gui.F_Lot_Factor.cmdRefresh.Size(855,375)
+Gui.F_Lot_Factor.cmdRefresh.Position(18150,105)
+Gui.F_Lot_Factor.cmdRefresh.Caption("Refresh")
+Gui.F_Lot_Factor.cmdRefresh.Event(Click,cmdRefresh_Click)
+Gui.F_Lot_Factor.cmdRefresh.Anchor(9)
+Gui.F_Lot_Factor.pBRefresh.Create(ProgressBar)
+Gui.F_Lot_Factor.pBRefresh.Visible(False)
+Gui.F_Lot_Factor.pBRefresh.Size(3735,255)
+Gui.F_Lot_Factor.pBRefresh.Position(10485,180)
+Gui.F_Lot_Factor.frmGrid.Create(Frame)
+Gui.F_Lot_Factor.frmGrid.Size(19005,9840)
+Gui.F_Lot_Factor.frmGrid.Position(75,540)
+Gui.F_Lot_Factor.frmGrid.Anchor(15)
+Gui.F_Lot_Factor.GsGcLotFactor.Create(GsGridControl)
+Gui.F_Lot_Factor.GsGcLotFactor.Size(18825,9585)
+Gui.F_Lot_Factor.GsGcLotFactor.Position(75,165)
+Gui.F_Lot_Factor.GsGcLotFactor.Anchor(15)
+Gui.F_Lot_Factor.GsGcLotFactor.Event(RowCellClick,GsGcLotFactor_RowCellClick)
+Gui.F_Lot_Factor.GsGcLotFactor.Parent("frmGrid")
+Gui.F_Lot_Factor.lblLastUpdate.Create(Label,"Label",True,3675,255,0,14355,255,True,0,"Arial",8,-2147483633,0)
+Gui.F_Lot_Factor.lbl1.Create(Label,"PL:",True,360,255,0,135,195,True,0,"Arial",8,-2147483633,0)
+Gui.F_Lot_Factor.txt1.Create(TextBox,"",True,450,300,0,495,105,True,0,"Arial",8,-2147483643,1)
+Gui.F_Lot_Factor.lbl2.Create(Label,"Status:",True,630,255,0,1335,195,True,1,"Arial",8,-2147483633,0)
+Gui.F_Lot_Factor.cmdLoad.Create(Button)
+Gui.F_Lot_Factor.cmdLoad.Size(855,375)
+Gui.F_Lot_Factor.cmdLoad.Position(3525,75)
+Gui.F_Lot_Factor.cmdLoad.Caption("Load")
+Gui.F_Lot_Factor.cmdLoad.Event(Click,cmdLoad_Click)
+Gui.F_Lot_Factor.cmdPL_Brw.Create(Button)
+Gui.F_Lot_Factor.cmdPL_Brw.Size(330,375)
+Gui.F_Lot_Factor.cmdPL_Brw.Position(1005,60)
+Gui.F_Lot_Factor.cmdPL_Brw.Caption("^")
+Gui.F_Lot_Factor.cmdPL_Brw.Event(Click,cmdPL_Brw_Click)
+Gui.F_Lot_Factor.ddlStatus.Create(DropDownList)
+Gui.F_Lot_Factor.ddlStatus.Size(1245,330)
+Gui.F_Lot_Factor.ddlStatus.Position(1995,90)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+v.Global.sBOM.Declare
+v.Global.fRM_Cost.Declare
+v.Global.fLot_Cost.Declare
+v.Global.fLot_Factor.Declare
+
+v.Global.fLot_1MO.Declare
+v.Global.fLot_6MO.Declare
+v.Global.fLot_13MO.Declare
+
+v.Global.fVar_1MO.Declare
+v.Global.fVar_6MO.Declare
+v.Global.fVar_13MO.Declare
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+f.Intrinsic.Control.Try
+	gui.F_Lot_Factor.ddlStatus.AddItem("Active")
+	gui.F_Lot_Factor.ddlStatus.AddItem("Inactive")
+	gui.F_Lot_Factor.ddlStatus.AddItem("RPO")
+	gui.F_Lot_Factor.ddlStatus.AddItem("Slow Moving")
+	
+	f.Intrinsic.Control.CallSub(LoadIcon)
+	f.Intrinsic.Control.CallSub(loadDT)
+	f.Intrinsic.Control.CallSub(loadDictionary)
+	f.Intrinsic.Control.CallSub(loadGridProperties)
+	gui.F_Lot_Factor..Show
+	f.Intrinsic.Control.CallSub(updateLabel)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.ErrorMsg.Start
+v.Local.sError.Declare
+
+'Closes ODBC connection, default to connection : "con"
+f.Intrinsic.Control.If(v.ODBC!con.State, =, 1)
+	f.ODBC.Connection!con.Close
+f.Intrinsic.Control.EndIf
+
+'Generic Error message.
+f.Intrinsic.String.Build("GCG_5542_LotFactorDash.g2u {0}{0}Subroutine: {1}{0}Error: {2} with Description: {3}", v.Ambient.NewLine, v.Args.CurrentSub, v.Ambient.ErrorNumber, v.Ambient.ErrorDescription, v.Local.sError)
+f.Intrinsic.UI.Msgbox(v.Local.sError)
+Program.Sub.ErrorMsg.End
+
+Program.Sub.loadIcon.Start
+v.Local.sIcon.Declare
+'sets the icon
+f.Intrinsic.String.Build("{0}\ART\gss2.ico", v.Caller.GlobalDir, v.Local.sIcon)
+gui.F_Lot_Factor..Icon(v.Local.sIcon)
+Program.Sub.loadIcon.End
+
+Program.Sub.F_Lot_Factor_UnLoad.Start
+f.Intrinsic.Control.Try
+	f.Intrinsic.Control.End
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.F_Lot_Factor_UnLoad.End
+
+Program.Sub.loadDT.Start
+f.Intrinsic.Control.Try
+	f.ODBC.Connection!con.OpenCompanyConnection
+		f.Data.DataTable.CreateFromSQL("displayDT", "con", "Select * from GCG_5542_BOM_CALC", true)	
+		f.Data.Dictionary.CreateFromSQL("productLineDict", "con", "Select Part, Product_Line from V_Inventory_Mstr")
+		f.Data.Dictionary.SetDefaultReturn("productLineDict", "")
+	f.ODBC.Connection!con.Close
+	
+	f.Data.DataTable.AddColumn("displayDT", "Description", "String")
+	f.Data.DataTable.AddColumn("displayDT", "Description2", "String")
+	f.Data.DataTable.AddColumn("displayDT", "Status", "String")
+	
+	gui.F_Lot_Factor.GsGcLotFactor.AddGridviewFromDatatable("displayGV", "displayDT")
+	gui.F_Lot_Factor.GsGcLotFactor.MainView("displayGV")
+	
+	f.Intrinsic.Control.If(v.DataTable.saveDT.Exists)
+		f.Data.DataTable.Close("saveDT")
+	f.Intrinsic.Control.EndIf	
+	f.Data.DataTable.Create("saveDT", true)
+	f.Data.DataTable.AddColumn("saveDT", "BomParent", "String")
+	f.Data.DataTable.AddColumn("saveDT", "PL", "String")
+	f.Data.DataTable.AddColumn("saveDT", "RmCost", "Float")
+	f.Data.DataTable.AddColumn("saveDT", "LotCost", "Float")
+	f.Data.DataTable.AddColumn("saveDT", "LotFactor", "Float")
+	f.Data.DataTable.AddColumn("saveDT", "Lot_1MO", "Float")
+	f.Data.DataTable.AddColumn("saveDT", "Lot_6MO", "Float")
+	f.Data.DataTable.AddColumn("saveDT", "Lot_13MO", "Float")
+	f.Data.DataTable.AddColumn("saveDT", "Var_1MO", "Float")
+	f.Data.DataTable.AddColumn("saveDT", "Var_6MO", "Float")
+	f.Data.DataTable.AddColumn("saveDT", "Var_13MO", "Float")
+	
+	f.Data.DataTable.SetValueFormat("saveDT", -1, "Lot_1MO", "Lot_1MO", "#.##")
+	f.Data.DataTable.SetValueFormat("saveDT", -1, "Lot_6MO", "Lot_6MO", "#.##")
+	f.Data.DataTable.SetValueFormat("saveDT", -1, "Lot_13MO", "Lot_13MO", "#.##")
+	
+	f.Data.DataTable.SetValueFormat("saveDT", -1, "Var_1MO", "Var_1MO", "#.##")
+	f.Data.DataTable.SetValueFormat("saveDT", -1, "Var_6MO", "Var_6MO", "#.##")
+	f.Data.DataTable.SetValueFormat("saveDT", -1, "Var_13MO", "Var_13MO", "#.##")
+	
+	f.Intrinsic.Control.If(v.DataTable.RM_CostDT.Exists)
+		f.Data.DataTable.Close("RM_CostDT")
+	f.Intrinsic.Control.EndIf	
+	f.Data.DataTable.Create("RM_CostDT", true)
+	f.Data.DataTable.AddColumn("RM_CostDT", "Part", "String")
+	f.Data.DataTable.AddColumn("RM_CostDT", "QTY", "Float")
+	f.Data.DataTable.AddColumn("RM_CostDT", "UnitCost", "Float")
+	
+	f.Intrinsic.Control.If(v.DataTable.Lot_CostDT.Exists)
+		f.Data.DataTable.Close("Lot_CostDT")
+	f.Intrinsic.Control.EndIf	
+	f.Data.DataTable.Create("Lot_CostDT", true)
+	f.Data.DataTable.AddColumn("Lot_CostDT", "Part", "String")
+	f.Data.DataTable.AddColumn("Lot_CostDT", "QTY", "Float")
+	f.Data.DataTable.AddColumn("Lot_CostDT", "UnitCost", "Float")
+	
+	f.Data.DataTable.AddExpressionColumn("RM_CostDT", "TotalCost", "Float", "QTY*UnitCost")
+	f.Data.DataTable.AddExpressionColumn("Lot_CostDT", "TotalCost", "Float", "QTY*UnitCost")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.loadDT.End
+
+Program.Sub.loadGridProperties.Start
+v.Local.iCnt.Declare
+v.Local.sFields.Declare
+f.Intrinsic.Control.Try
+	f.Intrinsic.String.Split(v.DataTable.displayDT.FieldNames, "*!*", v.Local.sFields)
+	f.Intrinsic.Control.For(v.Local.iCnt, 0, v.Local.sFields.UBound, 1)
+		gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderFontBold", True)
+		gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "Visible", True)
+		gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "ReadOnly", True)
+		gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "AllowEdit", False)
+		gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderHAlignment", "Center")
+		gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "CellHAlignment", "Near")
+		gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderBackColor", v.Color.GSS)
+		gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", v.Local.sFields(v.Local.iCnt), "HeaderForeColor", v.Color.White)
+	f.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "BomParent", "Caption", "BOM Parent")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "PL", "Caption", "PL")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Status", "Caption", "Status")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Description", "Caption", "Description")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Description2", "Caption", "Alt Description")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "RmCost", "Caption", "RM Cost")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "LotCost", "Caption", "Lot Cost")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "LotFactor", "Caption", "Lot Factor")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "TotalCost", "Caption", "Total Cost")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Lot_1MO", "Caption", "Lot 1%MO")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Var_1MO", "Caption", "Var 1%MO")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Per_1MO", "Caption", "1%MO VAR")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Lot_6MO", "Caption", "Lot 6%MO")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Var_6MO", "Caption", "Var 6%MO")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Per_6MO", "Caption", "1%MO VAR")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Lot_13MO", "Caption", "Lot 13%MO")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Var_13MO", "Caption", "Var 13%MO")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Per_13MO", "Caption", "13%MO VAR")
+'	
+'	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "BomParent", "VisibleIndex", 0)
+'	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "PL", "VisibleIndex", 1)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "RmCost", "DisplayCustomNumeric", "\$ 0.00")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "LotCost", "DisplayCustomNumeric", "\$ 0.00")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "LotFactor", "DisplayCustomNumeric", "\$ 0.00")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "TotalCost", "DisplayCustomNumeric", "\$ 0.00")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Lot_1MO", "DisplayCustomNumeric", "\$ 0.00")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Var_1MO", "DisplayCustomNumeric", "\$ 0.00")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Per_1MO", "DisplayCustomNumeric", "#0.00%")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Lot_6MO", "DisplayCustomNumeric", "\$ 0.00")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Var_6MO", "DisplayCustomNumeric", "\$ 0.00")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Per_6MO", "DisplayCustomNumeric", "#0.00%")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Lot_13MO", "DisplayCustomNumeric", "\$ 0.00")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Var_13MO", "DisplayCustomNumeric", "\$ 0.00")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Per_13MO", "DisplayCustomNumeric", "#0.00%")
+	
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "PL", "CellHAlignment", "Center")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Description", "CellHAlignment", "Near")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Description2", "CellHAlignment", "Near")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "RmCost", "CellHAlignment", "Far")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "LotCost", "CellHAlignment", "Far")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "LotFactor", "CellHAlignment", "Far")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "TotalCost", "CellHAlignment", "Far")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Lot_1MO", "CellHAlignment", "Far")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Var_1MO", "CellHAlignment", "Far")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Per_1MO", "CellHAlignment", "Far")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Lot_6MO", "CellHAlignment", "Far")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Var_6MO", "CellHAlignment", "Far")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Per_6MO", "CellHAlignment", "Far")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Lot_13MO", "CellHAlignment", "Far")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Var_13MO", "CellHAlignment", "Far")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Per_13MO", "CellHAlignment", "Far")
+	
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "BomParent", "Width", 120)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "PL", "Width", 60)
+
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "BomParent", "CellForeColor", v.Color.LtBlue)
+
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "BomParent", "HeaderHAlignment", "Near")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Description", "HeaderHAlignment", "Near")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Description2", "HeaderHAlignment", "Near")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "BomParent", "CellHAlignment", "Near")
+	
+	v.Local.iCnt.Set(0)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "BomParent", "VisibleIndex", v.Local.iCnt)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "PL", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Status", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Description", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Description2", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "RmCost", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "LotCost", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "LotFactor", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "TotalCost", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Lot_1MO", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Var_1MO", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Per_1MO", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Lot_6MO", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Var_6MO", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Per_6MO", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Lot_13MO", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Var_13MO", "VisibleIndex", v.Local.iCnt.++)
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Per_13MO", "VisibleIndex", v.Local.iCnt.++)
+	
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "BomParent", "Fixed", "Left")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "PL", "Fixed", "Left")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Status", "Fixed", "Left")
+	gui.F_Lot_Factor.GsGcLotFactor.SetColumnProperty("displayGV", "Description", "Fixed", "Left")
+	
+	gui.F_Lot_Factor.GsGcLotFactor.SetGridviewProperty("displayGV", "Showgrouppanel", true)
+	gui.F_Lot_Factor.GsGcLotFactor.SetGridviewProperty("displayGV", "OptionsViewColumnAutoWidth", false)
+	gui.F_Lot_Factor.GsGcLotFactor.BestFitColumns("displayGV")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.loadGridProperties.End
+
+Program.Sub.GsGcLotFactor_RowCellClick.Start
+v.Local.sColumn.Declare
+f.Intrinsic.Control.Try
+	f.Intrinsic.String.UCase(v.Args.Column, v.Local.sColumn)
+	f.Intrinsic.Control.SelectCase(v.Local.sColumn)
+		f.Intrinsic.Control.Case("BOMPARENT")
+			f.Global.Callwrapper.New("Test","Manufacturing.BOM.OpenBOMMaintenance")
+			f.Global.Callwrapper.SetProperty("Test","Parent", v.DataTable.displayDT(v.Args.RowIndex).BomParent!FieldVal)
+			f.Global.CallWrapper.Run("Test")
+	f.Intrinsic.Control.EndSelect
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.GsGcLotFactor_RowCellClick.End
+
+Program.Sub.cmdRefresh_Click.Start
+'Function.Intrinsic.Debug.InvokeDebugger
+'Function.Intrinsic.Debug.Stop
+v.Local.sFileLoc.Declare
+v.Local.iRet.Declare
+f.Intrinsic.Control.Try
+	gui.F_Lot_Factor..Enabled(false)
+	gui.F_Lot_Factor.pBRefresh.Visible(True)
+	gui.F_Lot_Factor.pBRefresh.Value(50)
+	gui.F_Lot_Factor.frmGrid.Enabled(false)
+	f.Intrinsic.UI.Msgbox("Do you wish to Recalculate All Bom Lot Factors?", "Relaod", "4", v.Local.iRet)
+	f.Intrinsic.Control.If(v.Local.iRet, =, 6)
+		f.Intrinsic.String.Build("{0}\GCG_5542_Task_Calc.g2u", v.Caller.GasDir, v.Local.sFileLoc)
+		f.Global.General.CallSyncGAS(v.Local.sFileLoc)
+	f.Intrinsic.Control.EndIf	
+	gui.F_Lot_Factor.pBRefresh.Value(75)
+	f.Intrinsic.Control.CallSub(reloadDT)
+	f.Intrinsic.Control.CallSub(loadDictionary)
+	gui.F_Lot_Factor.pBRefresh.Value(100)
+	gui.F_Lot_Factor.frmGrid.Enabled(True)
+	gui.F_Lot_Factor.pBRefresh.Visible(False)
+	f.Intrinsic.Control.CallSub(updateLabel)
+	gui.F_Lot_Factor..Enabled(true)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdRefresh_Click.End
+
+Program.Sub.reloadDT.Start
+f.Intrinsic.Control.Try
+	f.ODBC.Connection!con.OpenCompanyConnection
+		f.Data.DataTable.CreateFromSQL("tmpDisplayDT", "con", "Select * from GCG_5542_BOM_CALC", true)
+	f.ODBC.Connection!con.Close
+	
+	f.Data.DataTable.AddColumn("tmpDisplayDT", "Description", "String")
+	f.Data.DataTable.AddColumn("tmpDisplayDT", "Description2", "String")	
+	f.Data.DataTable.AddColumn("tmpDisplayDT", "Status", "String")
+	
+	f.Data.DataTable.DeleteRow("displayDT")
+	f.Data.DataTable.AcceptChanges("displayDT")
+	f.Data.DataTable.Merge("tmpDisplayDT", "displayDT", false, 2)
+	f.Data.DataTable.Close("tmpDisplayDT")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.reloadDT.End
+
+Program.Sub.updateLabel.Start
+v.Local.sText.Declare
+v.Local.sFilePath.Declare
+v.Local.bExists.Declare
+f.Intrinsic.Control.Try
+	f.Intrinsic.String.Build("{0}\CUSTOM\GCG_5542\GCG_5542_Date.txt", v.Caller.GlobalDir, v.Local.sFilePath)
+	f.Intrinsic.File.Exists(v.Local.sFilePath, v.Local.bExists)
+	f.Intrinsic.Control.If(v.Local.bExists)
+		f.Intrinsic.File.File2String(v.Local.sFilePath, v.Local.sText)
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Control.If(v.Local.sText.Trim, =, "")
+		gui.F_Lot_Factor.lblLastUpdate.Caption("No Update File Found.")
+	f.Intrinsic.Control.Else
+		f.Intrinsic.String.Build("Last updated on: {0}", v.Local.sText, v.Local.sText)
+		gui.F_Lot_Factor.lblLastUpdate.Caption(v.Local.sText)
+	f.Intrinsic.Control.EndIf
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.updateLabel.End
+
+Program.Sub.loadDictionary.Start
+f.Intrinsic.Control.Try
+	f.ODBC.Connection!con.OpenCompanyConnection
+		f.Data.Dictionary.CreateFromSQL("descDict", "con", "Select Part, Description from V_Inventory_Mstr")
+		f.Data.Dictionary.CreateFromSQL("desc2Dict", "con", "Select Part, Description_2 from V_Inventory_Mst2")
+		f.Data.Dictionary.CreateFromSQL("statusDict", "con", "Select Part, text_info1 from V_Inventory_Mst2")
+	f.ODBC.Connection!con.Close
+	
+	f.Data.Dictionary.SetDefaultReturn("descDict", "")
+	f.Data.DataTable.FillFromDictionary("displayDT", "descDict", "BomParent", "Description")
+	f.Data.Dictionary.Close("descDict")
+	
+	f.Data.Dictionary.SetDefaultReturn("desc2Dict", "")
+	f.Data.DataTable.FillFromDictionary("displayDT", "desc2Dict", "BomParent", "Description2")
+	f.Data.Dictionary.Close("desc2Dict")
+	
+	f.Data.Dictionary.SetDefaultReturn("statusDict", "")
+	f.Data.DataTable.FillFromDictionary("displayDT", "statusDict", "BomParent", "Status")
+	f.Data.Dictionary.Close("statusDict")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.loadDictionary.End
+
+Program.Sub.cmdPL_Brw_Click.Start
+v.Local.sRet.Declare
+f.Intrinsic.Control.Try
+	f.Intrinsic.UI.CommonBrowser(130, "", v.Local.sRet)
+	f.Intrinsic.String.Split(v.Local.sRet, "*!*", v.Local.sRet)
+	gui.F_Lot_Factor.txt1.Text(v.Local.sRet(0))
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdPL_Brw_Click.End
+
+Program.Sub.cmdLoad_Click.Start
+v.Local.sPL.Declare
+v.Local.sStatus.Declare
+v.Local.sSQL.Declare
+v.Local.iRet.Declare
+v.Local.iCnt.Declare
+v.Local.iTemp.Declare
+v.Local.iLoadBar.Declare
+v.Local.iRowNum.Declare
+f.Intrinsic.Control.Try
+
+	v.Local.sPL.Set(v.Screen.F_Lot_Factor!txt1.Text)
+	v.Local.sStatus.Set(v.Screen.F_Lot_Factor!ddlStatus.Text)
+	
+	f.Intrinsic.Control.If(v.Local.sPL.Trim, =, "", OR, v.Local.sStatus.Trim, =, "")
+		f.Intrinsic.UI.Msgbox("Please Select a Product Line and an Statur.", , v.Local.iRet)
+	f.Intrinsic.Control.EndIf
+	
+	gui.F_Lot_Factor..Enabled(false)
+	gui.F_Lot_Factor.pBRefresh.Visible(True)
+	gui.F_Lot_Factor.pBRefresh.Value(0)
+	
+	f.ODBC.Connection!con.OpenCompanyConnection
+		f.Intrinsic.String.Build("Select Part, Location, Description, Product_Line, text_info1 from V_Inventory_All where Product_Line = '{0}' and Text_Info1 = '{1}'", v.Local.sPL, v.Local.sStatus, v.Local.sSQL)
+	 	f.Data.DataTable.CreateFromSQL("selectedPartDT", "con", v.Local.sSQL)
+	f.ODBC.Connection!con.Close
+	
+	gui.F_Lot_Factor.pBRefresh.Value(10)
+	
+	v.Local.iRowNum.Set(v.DataTable.selectedPartDT.RowCount)
+	f.Intrinsic.Control.If(v.Local.iRowNum, =, 0)
+		v.Local.iRowNum.Set(1)
+	f.Intrinsic.Control.EndIf
+	
+	f.Intrinsic.Math.IDiv(60, v.Local.iRowNum, v.Local.iTemp)
+	
+	f.Intrinsic.Control.For(v.Local.iCnt, 0, v.DataTable.selectedPartDT.RowCount--, 1)
+		v.Global.sBOM.Set(v.DataTable.selectedPartDT(v.Local.iCnt).Part!FieldValTrim)
+		f.Intrinsic.Control.CallSub("getBomParent")
+		
+		f.Data.DataTable.DeleteRow("RM_CostDT")
+		f.Data.DataTable.AcceptChanges("RM_CostDT")
+		
+		f.Data.DataTable.DeleteRow("Lot_CostDT")
+		f.Data.DataTable.AcceptChanges("Lot_CostDT")
+		
+		f.Intrinsic.Math.Mult(v.Local.iCnt, v.Local.iTemp, v.Local.iLoadBar)
+		gui.F_Lot_Factor.pBRefresh.Value(v.Local.iLoadBar)
+	f.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	f.Data.DataTable.AcceptChanges("saveDT")
+	f.ODBC.Connection!con.OpenCompanyConnection
+	 	f.Data.DataTable.SaveToDB("saveDT", "con", "GCG_5542_BOM_CALC", "BomParent", 256)
+	f.ODBC.Connection!con.Close
+	
+	f.Intrinsic.Control.CallSub(reloadDT)
+	gui.F_Lot_Factor.pBRefresh.Value(80)
+	f.Intrinsic.Control.CallSub(loadDictionary)
+	gui.F_Lot_Factor.pBRefresh.Value(90)
+	
+	gui.F_Lot_Factor.pBRefresh.Value(100)
+	gui.F_Lot_Factor.pBRefresh.Visible(False)	
+	gui.F_Lot_Factor..Enabled(true)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdLoad_Click.End
+
+'Check it works
+Program.Sub.getBomParent.Start
+v.Local.sSQL.Declare
+v.Local.iCnt.Declare
+v.Local.sCurrentPart.Declare
+v.Local.sPL.Declare
+v.Local.fCurrentQty.Declare
+v.Local.fCurrentCost.Declare
+f.Intrinsic.Control.Try
+	
+	f.Intrinsic.String.Build("Select Parent, Sequence_Bom, Cost, Quantity, Part, Part as PL from V_BOM_MSTR where Parent  =  '{0}' and Sequence_Bom <> '0000' order by Parent, Sequence_BOM", v.Global.sBOM, v.Local.sSQL)
+	f.ODBC.Connection!con.OpenCompanyConnection
+		f.Data.DataTable.CreateFromSQL("bomLevel_1DT", "con", v.Local.sSQL)
+		f.Data.DataTable.FillFromDictionary("bomLevel_1DT", "productLineDict", "PL")
+	f.ODBC.Connection!con.Close
+	
+	f.Intrinsic.Control.For(v.Local.iCnt, 0, v.DataTable.bomLevel_1DT.RowCount--, 1)
+		v.Local.sCurrentPart.Set(v.DataTable.bomLevel_1DT(v.Local.iCnt).Part!FieldVal)
+		v.Local.sPL.Set(v.DataTable.bomLevel_1DT(v.Local.iCnt).PL!FieldVal)
+		v.Local.fCurrentQty.Set(v.DataTable.bomLevel_1DT(v.Local.iCnt).Quantity!FieldVal)
+		v.Local.fCurrentCost.Set(v.DataTable.bomLevel_1DT(v.Local.iCnt).Cost!FieldVal)
+		
+		f.Intrinsic.String.Build("Select Parent, Sequence_Bom, Cost, Quantity, Part, Part as PL from V_BOM_MSTR where Parent  =  '{0}' and Sequence_Bom <> '0000' order by Parent, Sequence_BOM", v.Local.sCurrentPart, v.Local.sSQL)
+		f.ODBC.Connection!con.OpenCompanyConnection
+			f.Data.DataTable.CreateFromSQL("bomChildDT", "con", v.Local.sSQL)
+		f.ODBC.Connection!con.Close
+		
+		f.Intrinsic.Control.If(v.DataTable.bomChildDT.RowCount, >, 0)
+			f.Intrinsic.Control.CallSub(getBomChild, "passedQTY", v.Local.fCurrentQty, "passedBom", v.Local.sCurrentPart)
+			
+		f.Intrinsic.Control.Else
+			f.Intrinsic.Control.If(v.Local.sPL.Trim, =, "RM")
+				f.Data.DataTable.AddRow("RM_CostDT", "Part", v.Local.sCurrentPart, "QTY", v.Local.fCurrentQty, "UnitCost", v.Local.fCurrentCost)
+			f.Intrinsic.Control.EndIf
+			
+			f.Intrinsic.Control.If(v.Local.sPL.Trim, =, "ZL")
+				f.Data.DataTable.AddRow("Lot_CostDT", "Part", v.Local.sCurrentPart, "QTY", v.Local.fCurrentQty, "UnitCost", v.Local.fCurrentCost)
+			f.Intrinsic.Control.EndIf
+			
+			f.Intrinsic.Control.If(v.Local.sPL.Trim, =, "ZK")
+				f.Intrinsic.Math.Mult(v.Local.fCurrentQty, v.Local.fCurrentCost, v.Global.fLot_Factor)
+			f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.EndIf
+		
+			f.Data.DataTable.Close("bomChildDT")
+	f.Intrinsic.Control.Next(v.Local.iCnt)
+	
+	f.Intrinsic.Control.CallSub(calculateValues)
+	'f.Intrinsic.Control.CallSub(saveToDB)
+	f.Data.DataTable.Close("bomLevel_1DT")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.getBomParent.End
+
+Program.Sub.getBomChild.Start
+v.Local.sSQL.Declare
+v.Local.iCnt.Declare
+v.Local.sCurrentPart.Declare
+v.Local.sPL.Declare
+v.Local.fCurrentQty.Declare
+v.Local.fCurrentCost.Declare
+f.Intrinsic.Control.Try
+	f.Intrinsic.String.Build("Select Parent, Sequence_Bom, Cost, Quantity, Part, Part as PL from V_BOM_MSTR where Parent  =  '{0}' and Sequence_Bom <> '0000' order by Parent, Sequence_BOM", v.Args.passedBom, v.Local.sSQL)
+	f.ODBC.Connection!con.OpenCompanyConnection
+		f.Data.DataTable.CreateFromSQL("subParentDT", "con", v.Local.sSQL)
+		'f.Data.Dictionary.CreateFromSQL("productLineDict", "con", "Select Part, Product_Line from V_Inventory_Mstr")
+		'f.Data.Dictionary.SetDefaultReturn("productLineDict", "")
+		f.Data.DataTable.FillFromDictionary("subParentDT", "productLineDict", "PL")
+		'f.Data.Dictionary.Close("productLineDict")
+	f.ODBC.Connection!con.Close
+	
+	f.Intrinsic.Control.For(v.Local.iCnt, 0, v.DataTable.subParentDT.RowCount--, 1)
+		v.Local.sCurrentPart.Set(v.DataTable.subParentDT(v.Local.iCnt).Part!FieldVal)
+		v.Local.sPL.Set(v.DataTable.subParentDT(v.Local.iCnt).PL!FieldVal)
+		v.Local.fCurrentQty.Set(v.DataTable.subParentDT(v.Local.iCnt).Quantity!FieldVal)
+		v.Local.fCurrentCost.Set(v.DataTable.subParentDT(v.Local.iCnt).Cost!FieldVal)
+		f.Intrinsic.Math.Mult(v.Local.fCurrentQty, v.Args.passedQTY, v.Local.fCurrentQTY)
+		
+		f.Intrinsic.String.Build("Select Parent, Sequence_Bom, Cost, Quantity, Part, Part as PL from V_BOM_MSTR where Parent  =  '{0}' and Sequence_Bom <> '0000' order by Parent, Sequence_BOM", v.Local.sCurrentPart, v.Local.sSQL)
+		f.ODBC.Connection!con.OpenCompanyConnection
+			f.Data.DataTable.CreateFromSQL("bomChildDT", "con", v.Local.sSQL)
+		f.ODBC.Connection!con.Close
+		
+		f.Intrinsic.Control.If(v.DataTable.bomChildDT.RowCount, >, 0)
+			f.Intrinsic.Control.CallSub(getBomChild, "passedQTY", v.Local.fCurrentQty, "passedBom", v.Local.sCurrentPart)
+		f.Intrinsic.Control.Else
+			f.Intrinsic.Control.If(v.Local.sPL.Trim, =, "RM")
+				f.Data.DataTable.AddRow("RM_CostDT", "Part", v.Local.sCurrentPart, "QTY", v.Local.fCurrentQty, "UnitCost", v.Local.fCurrentCost)
+			f.Intrinsic.Control.EndIf
+			
+			f.Intrinsic.Control.If(v.Local.sPL.Trim, =, "ZL")
+				f.Data.DataTable.AddRow("Lot_CostDT", "Part", v.Local.sCurrentPart, "QTY", v.Local.fCurrentQty, "UnitCost", v.Local.fCurrentCost)
+			f.Intrinsic.Control.EndIf
+		f.Intrinsic.Control.EndIf
+		
+			f.Data.DataTable.Close("bomChildDT")
+	f.Intrinsic.Control.Next(v.Local.iCnt)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.getBomChild.End
+
+Program.Sub.calculateValues.Start
+v.Local.fTemp.Declare
+f.Intrinsic.Control.Try
+	'f.Data.DataTable.AddExpressionColumn("RM_CostDT", "TotalCost", "Float", "QTY*UnitCost")
+	f.Data.DataTable.Compute("RM_CostDT", "SUM(TotalCost)", "", v.Global.fRM_Cost)
+'	f.Data.DataTable.AddExpressionColumn("Lot_CostDT", "TotalCost", "Float", "QTY*UnitCost")
+	f.Data.DataTable.Compute("Lot_CostDT", "SUM(TotalCost)", "", v.Global.fLot_Cost)
+	
+	f.Intrinsic.Math.Mult(v.Global.fRM_Cost, 0.01, v.Local.fTemp)
+	f.Intrinsic.Math.Sub(v.Local.fTemp, v.Global.fLot_Cost, v.Global.fLot_1MO)
+	f.Intrinsic.Math.Sub(v.Global.fLot_Factor, v.Global.fLot_1MO, v.Global.fVar_1MO)
+	
+	f.Intrinsic.Math.Mult(v.Global.fRM_Cost, 0.06, v.Local.fTemp)
+	f.Intrinsic.Math.Sub(v.Local.fTemp, v.Global.fLot_Cost, v.Global.fLot_6MO)
+	f.Intrinsic.Math.Sub(v.Global.fLot_Factor, v.Global.fLot_6MO, v.Global.fVar_6MO)
+	
+	f.Intrinsic.Math.Mult(v.Global.fRM_Cost, 0.13, v.Local.fTemp)
+	f.Intrinsic.Math.Sub(v.Local.fTemp, v.Global.fLot_Cost, v.Global.fLot_13MO)
+	f.Intrinsic.Math.Sub(v.Global.fLot_Factor, v.Global.fLot_13MO, v.Global.fVar_13MO)
+	
+	f.Data.DataTable.AddRow("saveDT", "BomParent", v.Global.sBOM, "RmCost", v.Global.fRM_Cost, "LotCost", v.Global.fLot_Cost, "LotFactor", v.Global.fLot_Factor, "Lot_1MO", v.Global.fLot_1MO, "Lot_6MO", v.Global.fLot_6MO, "Lot_13MO", v.Global.fLot_13MO, "Var_1MO", v.Global.fVar_1MO, "Var_6MO", v.Global.fVar_6MO, "Var_13MO", v.Global.fVar_13MO)
+	f.Data.DataTable.FillFromDictionary("saveDT", "productLineDict", "PL")
+	
+'	gui.Form..Caption(v.Global.sBOM)
+'	gui.Form.txtRMCost.Text(v.Global.fRM_Cost)
+'	gui.Form.txtLotCost.Text(v.Global.fLot_Cost)
+'	gui.Form.txtZK.Text(v.Global.fLot_Factor)
+'	f.Data.DataTable.AddRow("displayDT", "type_Col", "LOTFACTOR Calc", "col_1", v.Global.fLot_1MO, "col_6", v.Global.fLot_6MO, "col_13", v.Global.fLot_13MO)
+'	f.Data.DataTable.AddRow("displayDT", "type_Col", "$ Var to LOTFACTOR", "col_1", v.Global.fVar_1MO, "col_6", v.Global.fVar_6MO, "col_13", v.Global.fVar_13MO)
+f.Intrinsic.Control.Catch
+	f.Intrinsic.Control.CallSub(ErrorMsg, CurrentSub, v.Ambient.CurrentSubroutine)
+f.Intrinsic.Control.EndTry
+Program.Sub.calculateValues.End
